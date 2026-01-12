@@ -17,10 +17,12 @@ const grid = new Uint8Array(cols * rows)
 canvas.width = DISPLAY_WIDTH
 canvas.height = DISPLAY_HEIGHT
 
+// convert x, y coordinates to a linear index (C++ habits, sorry not sorry!)
 function gridIndex(x, y) {
     return x + y * cols
 }
 
+// sand falling logic
 function step() {
     for (let y = rows - 2; y >= 0; y--) {
         for (let x = 0; x < cols; x++) {
@@ -28,11 +30,18 @@ function step() {
             if(grid[gridIndex(x, y)] !== 1) {
                 continue;
             }
+            
+            // try falling straight down
             const below = gridIndex(x, y + 1)
             if (grid[below] === 0) {
                 grid[below] = 1
                 grid[gridIndex(x, y)] = 0
             } else {
+                // if blocked, try random diagonal
+                /* normally, in the standard algorithm, you try the right side
+                first, but that creates an abnormal effect for me, so I preferred
+                using random directions here.
+                */
                 const dir = Math.random() < 0.5 ? -1 : 1
                 const nx = x + dir
 
@@ -61,6 +70,7 @@ function render() {
     }
 }
 
+// main loop
 let running = true
 function loop() {
     if (mouseDown) {
@@ -73,7 +83,7 @@ function loop() {
 }
 
 
-// Interação do mouse para adicionar areia
+// mouse interactions
 let mouseDown = false;
 let mouseX = 0;
 let mouseY = 0;
@@ -97,8 +107,31 @@ function updatePointer(e) {
     mouseY = ((e.clientY - rect.top) / cellSize) | 0;
 }
 
+function paintCircle(cx, cy, r) {
+    const r2 = r * r;
 
+    for (let y = cy - r; y <= cy + r; y++) {
+        if (y < 0 || y >= rows)
+            continue;
 
+        for (let x = cx - r; x <= cx + r; x++) {
+            if (x < 0 || x >= cols)
+                continue;
+
+            const dx = x - cx;
+            const dy = y - cy;
+            if (dx * dx + dy * dy > r2)
+                continue;
+
+            grid[gridIndex(x, y)] = 1;
+        }
+    }
+}
+
+loop();
+
+// unused legacy functions (keeping them here just in case)
+/*
 function onPointerDown(e) {
     mouseDown = true;
     paintAtPointer(e);
@@ -125,26 +158,4 @@ function pointerToCell(e) {
         y: ((e.clientY - rect.top) / cellSize) | 0
     };
 }
-
-function paintCircle(cx, cy, r) {
-    const r2 = r * r;
-
-    for (let y = cy - r; y <= cy + r; y++) {
-        if (y < 0 || y >= rows)
-            continue;
-
-        for (let x = cx - r; x <= cx + r; x++) {
-            if (x < 0 || x >= cols)
-                continue;
-
-            const dx = x - cx;
-            const dy = y - cy;
-            if (dx * dx + dy * dy > r2)
-                continue;
-
-            grid[gridIndex(x, y)] = 1;
-        }
-    }
-}
-
-loop();
+*/
